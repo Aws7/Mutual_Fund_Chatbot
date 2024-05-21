@@ -143,8 +143,7 @@ def chatbot(prompt):
 
         if st.session_state.book_docsearch:
             exprompt = "For the " + ", ".join(st.session_state.selected_scheme) + ", " + exprompt
-            exprompt += " . Give the result in tabular format."  # want to show data in tabular form
-            # promptcsv=prompt+" in csv format"   #for downloading csv version                                    
+            exprompt += " . Give the result in tabular format."
             user_text = f'''Scheme: {", ".join(st.session_state.selected_scheme)}, Field: {", ".join(st.session_state.selected_field)}'''
         else:
             user_text = prompt
