@@ -37,6 +37,10 @@ load_dotenv()
 # OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 COHERE_API_KEY = os.getenv('COHERE_API_KEY')
 
+# Prompt message
+base_prompt = """
+أنت محامي وأسمك وثق. أنت تتبع أنظمة المملكة العربية السعودية. انت تتحدث اللغة العربية فقط ولا تجيب على اي سؤال الإ اذا كان باللغة العربية ولامانع اذا كان السؤال خليط بين اللغة العربية وغيرها من اللغات او المصطلحات. أنت تدرس جميع ما يعطى لك وتعطي إجابة واضحه ومفصلة حسب الانظمة والقوانين في المملكة العربية السعودية. لديك القدرة على تحليل السؤال او القضية. لديك القدرة على سؤال المستخدم عن حيثيات القضية او السؤال نفسه حتى تتضح لك الصورة كاملة وتستطيع الإدلاء بنص قانوني مستند على الأنظمة والقوانين في المملكة العربية السعودية. يجب عليك دائما ارفاق المرجع القانوني بالتفصيل برقم المادة و القانون في إجاباتك كمرجع قانوني وكمحامي محترف. لاتجب على أي سؤال غير مرتبط بك كمحامي وبإمكانك كتابة البريد الإلكتروني Support@wtheq.sa ويكون الإيميل في سطر خاص به. تذكر أن تقدم نفسك دائما كمحامي واسمك وثق.
+"""
 
 # Retrieve Schemes from CSV
 def schemeRetrieve(path):
@@ -124,7 +128,7 @@ def download_df(content, filename='data.csv'):
 def chatbot():
     st.subheader("Generate your Desired Mutual Fund Report")
     st.markdown("<br>", unsafe_allow_html=True)
-    prompt = st.text_input("أنت محامي وأسمك وثق. أنت تتبع أنظمة المملكة العربية السعودية. انت تتحدث اللغة العربية فقط ولا تجيب على اي سؤال الإ اذا كان باللغة العربية ولامانع اذا كان السؤال خليط بين اللغة العربية وغيرها من اللغات او المصطلحات. أنت تدرس جميع ما يعطى لك وتعطي إجابة واضحه ومفصلة حسب الانظمة والقوانين في المملكة العربية السعودية. لديك القدرة على تحليل السؤال او القضية. لديك القدرة على سؤال المستخدم عن حيثيات القضية او السؤال  نفسه حتى تتضح لك الصورة كاملة وتستطيع الإدلاء بنص قانوني مستند على الأنظمة والقوانين في المملكة العربية السعودية. يجب عليك دائما ارفاق المرجع القانوني بالتفصيل برقم المادة و القانون في إجاباتك كمرجع قانوني وكمحامي محترف. لاتجب على أي سؤال غير مرتبط بك كمحامي وبإمكانك كتابة البريد الإلكتروني Support@wtheq.sa ويكون الإيميل في سطر خاص به. تذكر أن تقدم نفسك دائما كمحامي واسمك وثق.")
+    prompt = st.text_input("Enter your query here")
     btn = st.button("Generate", type="primary")
 
     # Write previous conversations
@@ -135,7 +139,7 @@ def chatbot():
         computer_msg.write(i[1])
 
     if btn and prompt:
-        exprompt = prompt  # to store the previous prompt
+        exprompt = base_prompt + "\n\n" + prompt  # Combine base prompt with user input
 
         if st.session_state.book_docsearch:
             exprompt = "For the " + ", ".join(st.session_state.selected_scheme) + ", " + exprompt
@@ -158,7 +162,7 @@ def chatbot():
                 qa = RetrievalQA.from_llm(llm=llm, retriever=retriever, verbose=True)
                 answer = qa({"query": exprompt})["result"]
             else:
-                answer = llm(prompt)
+                answer = llm(exprompt)
 
             computer_text = f'''{answer}'''
             # print(answer)
@@ -176,7 +180,6 @@ def chatbot():
 
             # Adding current conversation to the list.
             st.session_state.conversation.append((user_text, answer))
-
 
 # For initialization of session variables
 def initial(flag=False):
@@ -218,14 +221,15 @@ def initial(flag=False):
         except:
             st.session_state.selected_field = None
 
-
 def main():
     initial(True)
     # Streamlit UI
     st.title("💰 Mutual Fund Report Generator")
 
     # Prompt input at the top for general chat
-    chatbot()
+    prompt = st.text_input("Enter your query here", key="global_prompt")
+    if st.button("Send", key="global_send"):
+        chatbot()
 
     # For showing the index selector
     file_list = []
@@ -263,6 +267,5 @@ def main():
         st.warning("⚠️ No index present. Please add a new index.")
         st.page_link("pages/Upload_Files.py", label="Upload Files", icon="⬆️")
         st.page_link("pages/Chatbot.py", label="Basic Chatbot", icon="💬")
-
 
 main()
