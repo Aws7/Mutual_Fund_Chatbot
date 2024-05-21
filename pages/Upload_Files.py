@@ -10,6 +10,7 @@ import streamlit as st
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from langchain_cohere import CohereEmbeddings
+import logging
 
 st.set_page_config("Upload Files", "📤")
 
@@ -17,7 +18,7 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 COHERE_API_KEY = os.getenv('COHERE_API_KEY')
 
-embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY, model="embed-arabic-v3.0")
+embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY, model="embed-english-v3.0")
 
 # Function to read PDF using pdfplumber
 def read_pdf(files):
@@ -48,27 +49,35 @@ def store_index(uploaded_file, index_option, file_names):
             file_content = read_pdf(uploaded_file)
             book_documents = recursive_text_splitter.create_documents([file_content])
             book_documents = [Document(page_content=text.page_content.replace("\n", " ").replace(".", "").replace("-", "")) for text in book_documents]
-            docsearch = FAISS.from_documents(book_documents, embeddings)
-            old_docsearch = FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
-            docsearch.merge_from(old_docsearch)
-            docsearch.save_local(index_path)
-            with open(desc_file, "w") as outfile:
-                json.dump(description, outfile)
+            try:
+                docsearch = FAISS.from_documents(book_documents, embeddings)
+                old_docsearch = FAISS.load_local(index_path, embeddings, allow_dangerous_deserialization=True)
+                docsearch.merge_from(old_docsearch)
+                docsearch.save_local(index_path)
+                with open(desc_file, "w") as outfile:
+                    json.dump(description, outfile)
+            except Exception as e:
+                logging.error(f"Error while creating FAISS index: {e}")
+                st.error(f"An error occurred while creating the FAISS index: {e}")
     else:
         st.toast(f"Storing in **new index** :green[**{index_option}**]...", icon="🗂️")
         with st.spinner("Processing..."):
             file_content = read_pdf(uploaded_file)
             book_documents = recursive_text_splitter.create_documents([file_content])
             book_documents = [Document(page_content=text.page_content.replace("\n", " ").replace(".", "").replace("-", "")) for text in book_documents]
-            docsearch = FAISS.from_documents(book_documents, embeddings)
-            docsearch.save_local(index_path)
-            description = {
-                "name": index_option,
-                "about": "",
-                "file_names": file_names
-            }
-            with open(desc_file, "w") as outfile:
-                json.dump(description, outfile)
+            try:
+                docsearch = FAISS.from_documents(book_documents, embeddings)
+                docsearch.save_local(index_path)
+                description = {
+                    "name": index_option,
+                    "about": "",
+                    "file_names": file_names
+                }
+                with open(desc_file, "w") as outfile:
+                    json.dump(description, outfile)
+            except Exception as e:
+                logging.error(f"Error while creating FAISS index: {e}")
+                st.error(f"An error occurred while creating the FAISS index: {e}")
     st.success(f"Successfully added to **{index_option}**!")
 
 recursive_text_splitter = RecursiveCharacterTextSplitter(
