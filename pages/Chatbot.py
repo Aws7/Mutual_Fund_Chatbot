@@ -46,7 +46,6 @@ def read_pdf(files):
             page = pdf_reader.pages[page_num]
             file_content += page.extract_text()
     return file_content
-
 # -----------------------------------------------------------#
 # ------------------------💬 CHATBOT -----------------------#
 # ----------------------------------------------------------#
@@ -55,43 +54,48 @@ def read_pdf(files):
 def chatbot():
     st.subheader("Ask questions from the PDFs")
     st.markdown("<br>", unsafe_allow_html=True)
-    # Check if it is empty
-    if st.session_state.book_docsearch:
-        prompt = st.chat_input("Say something")
 
-        # Write previous conversations
-        for i in st.session_state.conversation_chatbot:
-            user_msg = st.chat_message("human", avatar="🐒")
-            user_msg.write(i[0])
-            computer_msg = st.chat_message("ai", avatar="🧠")
-            computer_msg.write(i[1])
+    prompt = st.chat_input("Say something")
 
-        if prompt:
+    # Write previous conversations
+    for i in st.session_state.conversation_chatbot:
+        user_msg = st.chat_message("human", avatar="🐒")
+        user_msg.write(i[0])
+        computer_msg = st.chat_message("ai", avatar="🧠")
+        computer_msg.write(i[1])
+
+    if prompt:
+        if st.session_state.book_docsearch:
+            exprompt = base_prompt + "\n\n" + prompt
+            exprompt += " . This is regarding the uploaded file."
+            user_text = f'''{prompt}'''
+        else:
             exprompt = base_prompt + "\n\n" + prompt
             user_text = f'''{prompt}'''
-            user_msg = st.chat_message("human", avatar="🐒")
-            user_msg.write(user_text)
 
-            with st.spinner("Getting Answer..."):
-                # No of chunks the search should retrieve from the db
-                chunks_to_retrieve = 5
-                retriever = st.session_state.book_docsearch.as_retriever(search_type="similarity", search_kwargs={"k": chunks_to_retrieve})
+        user_msg = st.chat_message("human", avatar="🐒")
+        user_msg.write(user_text)
 
-                ## RetrievalQA Chain ##
-                qa = RetrievalQA.from_llm(llm=llm, retriever=retriever, verbose=True)
-                answer = qa({"query": exprompt})["result"]
-                computer_text = f'''{answer}'''
-                computer_msg = st.chat_message("ai", avatar="🧠")
-                computer_msg.write(computer_text)
+        with st.spinner("Getting Answer..."):
+            # No of chunks the search should retrieve from the db
+            chunks_to_retrieve = 5
+            retriever = st.session_state.book_docsearch.as_retriever(search_type="similarity", search_kwargs={"k": chunks_to_retrieve})
 
-                # Showing chunks with score
-                doc_score = st.session_state.book_docsearch.similarity_search_with_score(prompt, k=chunks_to_retrieve)
-                with st.popover("See chunks..."):
-                    st.write(doc_score)
-                # Adding current conversation_chatbot to the list.
-                st.session_state.conversation_chatbot.append((prompt, answer))
+            ## RetrievalQA Chain ##
+            qa = RetrievalQA.from_llm(llm=llm, retriever=retriever, verbose=True)
+            answer = qa({"query": exprompt})["result"]
+            computer_text = f'''{answer}'''
+            computer_msg = st.chat_message("ai", avatar="🧠")
+            computer_msg.write(computer_text)
+
+            # Showing chunks with score
+            doc_score = st.session_state.book_docsearch.similarity_search_with_score(prompt, k=chunks_to_retrieve)
+            with st.popover("See chunks..."):
+                st.write(doc_score)
+            # Adding current conversation_chatbot to the list.
+            st.session_state.conversation_chatbot.append((prompt, answer))
     else:
-        st.warning("Please upload a file")
+        st.warning("Please upload a file or enter a query.")
 
 
 # For initialization of session variables
