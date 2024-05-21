@@ -125,10 +125,9 @@ def download_df(content, filename='data.csv'):
 # -----------------------------------------------------------#
 # ------------------------💬 CHATBOT -----------------------#
 # ----------------------------------------------------------#
-def chatbot():
+def chatbot(prompt):
     st.subheader("Generate your Desired Mutual Fund Report")
     st.markdown("<br>", unsafe_allow_html=True)
-    prompt = st.text_input("Enter your query here")
     btn = st.button("Generate", type="primary")
 
     # Write previous conversations
@@ -139,7 +138,7 @@ def chatbot():
         computer_msg.write(i[1])
 
     if btn and prompt:
-        exprompt = base_prompt + "\n\n" + prompt  # Combine base prompt with user input
+        exprompt = base_prompt + "\n\n" + prompt  # Combine base_prompt with user input
 
         if st.session_state.book_docsearch:
             exprompt = "For the " + ", ".join(st.session_state.selected_scheme) + ", " + exprompt
@@ -229,7 +228,7 @@ def main():
     # Prompt input at the top for general chat
     prompt = st.text_input("Enter your query here", key="global_prompt")
     if st.button("Send", key="global_send"):
-        chatbot()
+        chatbot(prompt)
 
     # For showing the index selector
     file_list = []
@@ -253,7 +252,7 @@ def main():
         st.write(f"*Selected Scheme* : **:green[{temp_scheme}]**")
 
         with st.popover("Select Field", help="👉 Select the Field"):
-            radio_field = st.multiselect("Select a Scheme...", st.session_state.mf_field)
+            radio_field = st.multiselect("Select a Field...", st.session_state.mf_field)
             st.session_state.selected_field = radio_field
         temp_field = ", ".join(st.session_state.selected_field)
         st.write(f"*Selected Field* : **:green[{temp_field}]**")
@@ -262,7 +261,7 @@ def main():
     if st.session_state.selected_option:
         st.session_state.book_docsearch = FAISS.load_local(f"db/{st.session_state.selected_option}", embeddings, allow_dangerous_deserialization=True)
         # Call the chatbot function
-        chatbot()
+        chatbot(prompt)
     else:
         st.warning("⚠️ No index present. Please add a new index.")
         st.page_link("pages/Upload_Files.py", label="Upload Files", icon="⬆️")
