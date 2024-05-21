@@ -46,16 +46,14 @@ def read_pdf(files):
             page = pdf_reader.pages[page_num]
             file_content += page.extract_text()
     return file_content
+
 # -----------------------------------------------------------#
 # ------------------------💬 CHATBOT -----------------------#
 # ----------------------------------------------------------#
 
-
-def chatbot():
+def chatbot(prompt):
     st.subheader("Ask questions from the PDFs")
     st.markdown("<br>", unsafe_allow_html=True)
-
-    prompt = st.chat_input("Say something")
 
     # Write previous conversations
     for i in st.session_state.conversation_chatbot:
@@ -65,60 +63,65 @@ def chatbot():
         computer_msg.write(i[1])
 
     if prompt:
+        exprompt = base_prompt + "\n\n" + prompt
         if st.session_state.book_docsearch:
-            exprompt = base_prompt + "\n\n" + prompt
             exprompt += " . This is regarding the uploaded file."
-            user_text = f'''{prompt}'''
-        else:
-            exprompt = base_prompt + "\n\n" + prompt
-            user_text = f'''{prompt}'''
 
+        user_text = prompt
         user_msg = st.chat_message("human", avatar="🐒")
         user_msg.write(user_text)
 
         with st.spinner("Getting Answer..."):
-            # No of chunks the search should retrieve from the db
-            chunks_to_retrieve = 5
-            retriever = st.session_state.book_docsearch.as_retriever(search_type="similarity", search_kwargs={"k": chunks_to_retrieve})
+            if st.session_state.book_docsearch:
+                # No of chunks the search should retrieve from the db
+                chunks_to_retrieve = 5
+                retriever = st.session_state.book_docsearch.as_retriever(search_type="similarity", search_kwargs={"k": chunks_to_retrieve})
 
-            ## RetrievalQA Chain ##
-            qa = RetrievalQA.from_llm(llm=llm, retriever=retriever, verbose=True)
-            answer = qa({"query": exprompt})["result"]
-            computer_text = f'''{answer}'''
+                ## RetrievalQA Chain ##
+                qa = RetrievalQA.from_llm(llm=llm, retriever=retriever, verbose=True)
+                answer = qa({"query": exprompt})["result"]
+            else:
+                answer = llm(exprompt)
+
+            computer_text = answer
             computer_msg = st.chat_message("ai", avatar="🧠")
             computer_msg.write(computer_text)
 
-            # Showing chunks with score
-            doc_score = st.session_state.book_docsearch.similarity_search_with_score(prompt, k=chunks_to_retrieve)
-            with st.popover("See chunks..."):
-                st.write(doc_score)
+            if st.session_state.book_docsearch:
+                # Showing chunks with score
+                doc_score = st.session_state.book_docsearch.similarity_search_with_score(prompt, k=chunks_to_retrieve)
+                with st.popover("See chunks..."):
+                    st.write(doc_score)
+
             # Adding current conversation_chatbot to the list.
             st.session_state.conversation_chatbot.append((prompt, answer))
     else:
-        st.warning("Please upload a file or enter a query.")
-
+        st.warning("Please enter a query.")
 
 # For initialization of session variables
 def initial(flag=False):
     path = "db"
     if 'existing_indices' not in st.session_state or flag:
         st.session_state.existing_indices = [name for name in os.listdir(path) if os.path.isdir(os.path.join(path, name))]
-    if ('selected_option' not in st.session_state) or flag:
+    if 'selected_option' not in st.session_state or flag:
         try:
             st.session_state.selected_option = st.session_state.existing_indices[0]
         except:
             st.session_state.selected_option = None
-
     if 'conversation_chatbot' not in st.session_state:
         st.session_state.conversation_chatbot = []
     if 'book_docsearch' not in st.session_state:
         st.session_state.book_docsearch = None
 
-
 def main():
     initial(True)
     # Streamlit UI
     st.title("💰 Mutual Fund Chatbot")
+
+    # Prompt input at the top for general chat
+    prompt = st.text_input("Enter your query here", key="global_prompt")
+    if st.button("Send", key="global_send"):
+        chatbot(prompt)
 
     # For showing the index selector
     file_list = []
@@ -136,10 +139,9 @@ def main():
     if st.session_state.selected_option:
         st.session_state.book_docsearch = FAISS.load_local(f"db/{st.session_state.selected_option}", embeddings, allow_dangerous_deserialization=True)
         # Call the chatbot function
-        chatbot()
+        chatbot(prompt)
     else:
         st.warning("⚠️ No index present. Please add a new index.")
         # st.page_link("pages/Upload_Files.py", label="Upload Files", icon="⬆️")
-
 
 main()
