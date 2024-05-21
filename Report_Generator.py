@@ -83,7 +83,7 @@ def field_retrieve(path):
 
 
 # Using Cohere's embed-english-v3.0 embedding model
-embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY, model="embed-english-v3.0")
+embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY, model="embed-arabic-v3.0")
 
 
 # For OpenAI's gpt-3.5-turbo llm
