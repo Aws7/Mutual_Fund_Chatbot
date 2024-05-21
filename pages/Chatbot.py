@@ -51,7 +51,7 @@ def read_pdf(files):
 # ------------------------💬 CHATBOT -----------------------#
 # ----------------------------------------------------------#
 
-def chatbot(prompt):
+def chatbot():
     st.subheader("Ask questions from the PDFs")
     st.markdown("<br>", unsafe_allow_html=True)
 
@@ -62,6 +62,8 @@ def chatbot(prompt):
         computer_msg = st.chat_message("ai", avatar="🧠")
         computer_msg.write(i[1])
 
+    prompt = st.chat_input("Say something")
+    
     if prompt:
         exprompt = base_prompt + "\n\n" + prompt
         if st.session_state.book_docsearch:
@@ -95,8 +97,6 @@ def chatbot(prompt):
 
             # Adding current conversation_chatbot to the list.
             st.session_state.conversation_chatbot.append((prompt, answer))
-    else:
-        st.warning("Please enter a query.")
 
 # For initialization of session variables
 def initial(flag=False):
@@ -118,11 +118,6 @@ def main():
     # Streamlit UI
     st.title("💰 Mutual Fund Chatbot")
 
-    # Prompt input at the top for general chat
-    prompt = st.text_input("Enter your query here", key="global_prompt")
-    if st.button("Send", key="global_send"):
-        chatbot(prompt)
-
     # For showing the index selector
     file_list = []
     for index in st.session_state.existing_indices:
@@ -138,10 +133,8 @@ def main():
     # Load the selected index from local storage
     if st.session_state.selected_option:
         st.session_state.book_docsearch = FAISS.load_local(f"db/{st.session_state.selected_option}", embeddings, allow_dangerous_deserialization=True)
-        # Call the chatbot function
-        chatbot(prompt)
-    else:
-        st.warning("⚠️ No index present. Please add a new index.")
-        # st.page_link("pages/Upload_Files.py", label="Upload Files", icon="⬆️")
+
+    # Call the chatbot function
+    chatbot()
 
 main()
