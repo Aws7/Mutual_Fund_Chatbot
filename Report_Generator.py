@@ -43,7 +43,7 @@ base_prompt = """
 """
 
 # Retrieve Schemes from CSV
-def schemeRetrieve(path):
+def scheme_retrieve(path):
     df = pd.read_csv(path)
     df.columns = df.iloc[0].values
     df = df.drop(df.index[0])
@@ -54,7 +54,6 @@ def schemeRetrieve(path):
                 mf_scheme_list.append(str(i))
     return mf_scheme_list
 
-
 def field_retrieve(path):
     df = pd.read_csv(path)
     df.columns = df.iloc[0].values
@@ -63,7 +62,7 @@ def field_retrieve(path):
     ll = []
     for i in l:
         newl = i.replace("\r", " ")
-        newl = newl.replace("segregat ed", "segregated")
+        newl = newl.replace("segregated", "segregated")
         if "as" in newl:
             pos = newl.find("as")
         if "for" in newl:
@@ -73,11 +72,9 @@ def field_retrieve(path):
     ll.append("Net Inflow or Outflow")
     ll.append("Net Asset under Management per Scheme")
     ll.append("Net Inflow or Outflow per Scheme")
-
     return ll
 
-
-# Using Cohere's embed-english-v3.0 embedding model
+# Using Cohere's embed-arabic-v3.0 embedding model
 embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY, model="embed-arabic-v3.0")
 
 # For OpenAI's gpt-3.5-turbo llm
@@ -85,7 +82,6 @@ embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY, model="embed-arabic
 
 # For Cohere's command-r llm
 llm = ChatCohere(temperature=1, cohere_api_key=COHERE_API_KEY, model="command-r")
-
 
 # For reading PDFs and returning text string
 def read_pdf(files):
@@ -107,7 +103,6 @@ def read_pdf(files):
             file_content += page.extract_text()
     return file_content
 
-
 # Download CSV
 def download_df(content, filename='data.csv'):
     df = pd.read_csv(StringIO(content), sep="|", skipinitialspace=True)
@@ -115,12 +110,11 @@ def download_df(content, filename='data.csv'):
     # Remove leading and trailing whitespaces from column names
     df.columns = df.columns.str.strip()
     df.drop(df.columns[df.columns.str.contains('Unnamed', case=False)], axis=1, inplace=True)
-    # csv_bytes = content.encode()  # Convert string to bytes
+    csv_bytes = content.encode()  # Convert string to bytes
     csv = df.to_csv(index=False)
     b64 = base64.b64encode(csv.encode()).decode()  # Encode bytes to base64
     href = f'<a href="data:file/csv;base64,{b64}" download="{filename}">Download CSV File</a>'
     return href
-
 
 # -----------------------------------------------------------#
 # ------------------------💬 CHATBOT -----------------------#
@@ -128,6 +122,13 @@ def download_df(content, filename='data.csv'):
 def chatbot(prompt):
     st.subheader("Generate your Desired Mutual Fund Report")
     st.markdown("<br>", unsafe_allow_html=True)
+
+    # Send the initial prompt when the page loads
+    if prompt:
+        exprompt = base_prompt + "\n\n" + prompt
+        user_msg = st.chat_message("human", avatar="🐒")
+        user_msg.write(prompt)
+
     btn = st.button("Generate", type="primary")
 
     # Write previous conversations
@@ -164,7 +165,6 @@ def chatbot(prompt):
                 answer = llm(exprompt)
 
             computer_text = f'''{answer}'''
-            # print(answer)
             computer_msg = st.chat_message("ai", avatar="🧠")
             computer_msg.write(computer_text)
 
@@ -198,7 +198,7 @@ def initial(flag=False):
 
     if 'mf_schemes' not in st.session_state or flag:
         try:
-            st.session_state.mf_schemes = schemeRetrieve(f"./{path}/table.csv")
+            st.session_state.mf_schemes = scheme_retrieve(f"./{path}/table.csv")
         except:
             st.session_state.mf_schemes = None
 
@@ -227,6 +227,8 @@ def main():
 
     # Prompt input at the top for general chat
     prompt = st.text_input("Enter your query here", key="global_prompt")
+
+    # Send the prompt when the 'Send' button is clicked
     if st.button("Send", key="global_send"):
         chatbot(prompt)
 
@@ -243,7 +245,7 @@ def main():
     st.write(f"*Selected Index* : **:orange[{st.session_state.selected_option}]**")
 
     if 'existing_indices' in st.session_state:
-        st.session_state.mf_schemes = schemeRetrieve(f"./db/table.csv")
+        st.session_state.mf_schemes = scheme_retrieve(f"./db/table.csv")
 
         with st.popover("Select Scheme", help="👉 Select the Mutual Fund Scheme"):
             radio_scheme = st.multiselect("Select a Scheme...", st.session_state.mf_schemes)
