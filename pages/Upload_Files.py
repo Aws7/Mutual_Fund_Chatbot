@@ -17,7 +17,7 @@ load_dotenv()
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 COHERE_API_KEY = os.getenv('COHERE_API_KEY')
 
-embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY, model="embed-english-v3.0")
+embeddings = CohereEmbeddings(cohere_api_key=COHERE_API_KEY, model="embed-arabic-v3.0")
 
 # Function to read PDF using pdfplumber
 def read_pdf(files):
